@@ -114,7 +114,6 @@ def train(version_num, batch_size=64):
     #     # Invalid device or cannot modify virtual devices once initialized.
     #     pass
     # os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
-    wandb.init(project="china_steel_ocr", entity="danielpclin")
 
     training_dataset_csv = f"Training Label/public_training_data.csv"
     training_dataset_dir = f"public_training_data/public_training_data/public_training_data"
@@ -122,11 +121,11 @@ def train(version_num, batch_size=64):
     log_dir = f'logs/{version_num}'
     epochs = 100
     learning_rate = 0.001
-    wandb.config = {
+    run = wandb.init(project="china_steel_ocr", entity="danielpclin", reinit=True, config={
         "learning_rate": learning_rate,
         "epochs": epochs,
         "batch_size": batch_size
-    }
+    })
     img_width = 1232
     img_height = 1028
     alphabet = list('ABCDEFGHIJKLMNPQRSTUVWXYZ0123456789 ')
@@ -138,7 +137,7 @@ def train(version_num, batch_size=64):
     df[[f'label{i}' for i in range(1, 13)]] = pd.DataFrame(df['label'].to_list(), index=df.index)
     for i in range(1, 13):
         df[f'label{i}'] = df[f'label{i}'].apply(lambda el: to_categorical(char_to_int[el], len(alphabet)))
-    datagen = ImageDataGenerator(rescale=1. / 255, validation_split=0.2)
+    datagen = ImageDataGenerator(rescale=1. / 255, validation_split=0.1)
     train_generator = datagen.flow_from_dataframe(dataframe=df, directory=training_dataset_dir, subset='training',
                                                   x_col="filename", y_col=[f'label{i}' for i in range(1, 13)],
                                                   class_mode="multi_output",
@@ -263,16 +262,17 @@ def train(version_num, batch_size=64):
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
     plt.legend(loss_keys, loc='upper left')
-    plt.ylim(0, 0.1)
+    plt.ylim(1e-8, 0.5)
     plt.yscale("log")
     plt.tight_layout()
     plt.savefig(f"results/{version_num}.png")
 
+    run.finish()
     K.clear_session()
 
 
 def main():
-    for i in range(3, 10):
+    for i in range(4, 10):
         train(version_num=i, batch_size=32)
 
 

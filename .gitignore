@@ -4,6 +4,7 @@
 /標記與資料說明/
 /Training Label/
 /checkpoints/*.hdf5
+/wandb/
 
 /submission_template.zip
 /標記與資料說明.zip
