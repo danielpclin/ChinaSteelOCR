@@ -112,7 +112,7 @@ def train(version_num, batch_size=64):
     training_dataset_dir = f"public_training_data/public_training_data/public_training_data"
     checkpoint_path = f'checkpoint_{version_num}.hdf5'
     log_dir = f'logs/{version_num}'
-    epochs = 1000
+    epochs = 1
     img_width = 1232
     img_height = 1028
     alphabet = list('ABCDEFGHIJKLMNPQRSTUVWXYZ0123456789 ')
@@ -215,7 +215,8 @@ def train(version_num, batch_size=64):
         verbose=1,
         callbacks=callbacks_list
     )
-    # with open(f"{version_num}.txt", "w") as file:
+    print(train_history)
+    # with open(f"result/{version_num}.txt", "w") as file:
     #     loss_idx = np.argmin(train_history.history['val_loss'])
     #     digit6_idx = np.argmax(train_history.history['val_digit6_accuracy'])
     #     file.write(f"{train_history.history['val_loss'][loss_idx]}\n")
@@ -237,8 +238,9 @@ def train(version_num, batch_size=64):
 
 
 def main():
-    for i in range(2, 10):
-        train(version_num=i, batch_size=32)
+    # for i in range(3, 10):
+    #     train(version_num=i, batch_size=32)
+    train(version_num=3, batch_size=32)
 
 
 if __name__ == "__main__":
