@@ -12,7 +12,7 @@ from tensorflow.keras import mixed_precision
 mixed_precision.set_global_policy('mixed_float16')
 
 
-def evaluate(versions=(1,), batch_size=64, method="ocuur_sum_max"):
+def evaluate(versions=(1,), batch_size=64):
     evaluate_dataset_csv = f"Training Label/public_testing_data.csv"
     evaluate_dataset_dir = f"public_training_data/public_training_data/public_testing_data"
     img_width = 1232
@@ -27,7 +27,7 @@ def evaluate(versions=(1,), batch_size=64, method="ocuur_sum_max"):
     for i in range(1, 13):
         df[f'label{i}'] = df[f'label{i}'].apply(lambda el: to_categorical(char_to_int[el], len(alphabet)))
     for version in versions:
-        checkpoint_path = f'checkpoint_{version}.hdf5'
+        checkpoint_path = f'checkpoints/{version}.hdf5'
         image_data_generator = ImageDataGenerator(rescale=1. / 255)
         evaluate_generator = image_data_generator.flow_from_dataframe(dataframe=df, directory=evaluate_dataset_dir,
                                                                       x_col="filename",

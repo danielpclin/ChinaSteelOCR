@@ -23,7 +23,7 @@ def predict(versions=(1,), batch_size=64, method="occur_sum_max"):
     df['id'] = df['id'] + '.jpg'
     predictions = []
     for version in versions:
-        checkpoint_path = f'checkpoint_{version}.hdf5'
+        checkpoint_path = f'checkpoints/{version}.hdf5'
         image_data_generator = ImageDataGenerator(rescale=1. / 255)
         predict_generator = image_data_generator.flow_from_dataframe(dataframe=df, directory=evaluate_dataset_dir,
                                                                      x_col="id", class_mode=None, shuffle=False,
@@ -82,9 +82,9 @@ def predict(versions=(1,), batch_size=64, method="occur_sum_max"):
     result_df['text'] = result
     result_df['text'] = result_df['text'].str.strip()
     if len(versions) == 1:
-        result_df.to_csv(f'predict/{versions[0]}.csv', index=False)
+        result_df.to_csv(f'predictions/{versions[0]}.csv', index=False)
     else:
-        result_df.to_csv(f'predict/{"_".join(map(str, versions))}_{method}.csv', index=False)
+        result_df.to_csv(f'predictions/{"_".join(map(str, versions))}_{method}.csv', index=False)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,10 @@
 import os
+import pickle
+
 import pandas as pd
 import tensorflow as tf
 import numpy as np
+import matplotlib.pyplot as plt
 from tensorflow.keras import backend as K
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
@@ -110,7 +113,7 @@ def train(version_num, batch_size=64):
     # os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
     training_dataset_csv = f"Training Label/public_training_data.csv"
     training_dataset_dir = f"public_training_data/public_training_data/public_training_data"
-    checkpoint_path = f'checkpoint_{version_num}.hdf5'
+    checkpoint_path = f'checkpoints/{version_num}.hdf5'
     log_dir = f'logs/{version_num}'
     epochs = 1
     img_width = 1232
@@ -199,11 +202,11 @@ def train(version_num, batch_size=64):
     checkpoint = ModelCheckpoint(checkpoint_path, monitor='val_loss', verbose=1, save_best_only=True,
                                  save_weights_only=False, mode='auto')
 
-    earlystop = MinimumEpochEarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='auto', min_epoch=20)
-    tensorBoard = TensorBoard(log_dir=log_dir, histogram_freq=1)
-    reduceLR = MinimumEpochReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=3, cooldown=1, mode='auto',
-                                             min_lr=0.00001, min_epoch=15)
-    callbacks_list = [tensorBoard, earlystop, checkpoint, reduceLR]
+    early_stop = MinimumEpochEarlyStopping(monitor='val_loss', patience=10, verbose=1, mode='auto', min_epoch=20)
+    tensor_board = TensorBoard(log_dir=log_dir, histogram_freq=1)
+    reduce_lr = MinimumEpochReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=3, cooldown=1, mode='auto',
+                                              min_lr=0.00001, min_epoch=15)
+    callbacks_list = [tensor_board, early_stop, checkpoint, reduce_lr]
 
     model.summary()
     train_history = model.fit(
@@ -215,25 +218,35 @@ def train(version_num, batch_size=64):
         verbose=1,
         callbacks=callbacks_list
     )
-    print(train_history)
-    # with open(f"result/{version_num}.txt", "w") as file:
-    #     loss_idx = np.argmin(train_history.history['val_loss'])
-    #     digit6_idx = np.argmax(train_history.history['val_digit6_accuracy'])
-    #     file.write(f"{train_history.history['val_loss'][loss_idx]}\n")
-    #     file.write(f"{train_history.history['val_digit1_accuracy'][loss_idx]}\n")
-    #     file.write(f"{train_history.history['val_digit2_accuracy'][loss_idx]}\n")
-    #     file.write(f"{train_history.history['val_digit3_accuracy'][loss_idx]}\n")
-    #     file.write(f"{train_history.history['val_digit4_accuracy'][loss_idx]}\n")
-    #     file.write(f"{train_history.history['val_digit5_accuracy'][loss_idx]}\n")
-    #     file.write(f"{train_history.history['val_digit6_accuracy'][loss_idx]}\n")
-    #     file.write(f"{'-'*20}\n")
-    #     file.write(f"{train_history.history['val_loss'][digit6_idx]}\n")
-    #     file.write(f"{train_history.history['val_digit1_accuracy'][digit6_idx]}\n")
-    #     file.write(f"{train_history.history['val_digit2_accuracy'][digit6_idx]}\n")
-    #     file.write(f"{train_history.history['val_digit3_accuracy'][digit6_idx]}\n")
-    #     file.write(f"{train_history.history['val_digit4_accuracy'][digit6_idx]}\n")
-    #     file.write(f"{train_history.history['val_digit5_accuracy'][digit6_idx]}\n")
-    #     file.write(f"{train_history.history['val_digit6_accuracy'][digit6_idx]}\n")
+    with open(f"results/{version_num}.pickle", "wb") as file:
+        pickle.dump(train_history.history, file)
+    with open(f"results/{version_num}.txt", "w") as file:
+        loss_idx = np.argmin(train_history.history['val_loss'])
+        file.write("Loss:\n")
+        file.write(f"{train_history.history['val_loss'][loss_idx]}\n")
+        acc = 1
+        file.write("Accuracy:\n")
+        for letter_idx in range(1, 13):
+            acc *= train_history.history[f"val_digit{letter_idx}_accuracy"][loss_idx]
+        file.write(f"{acc}\n")
+    fig, ax = plt.subplots(figsize=(16, 12))
+    accuracy_keys = [key for key in train_history.history.keys() if 'accuracy' in key]
+    for key in accuracy_keys:
+        plt.plot(train_history.history[key])
+    plt.title('Model accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(accuracy_keys, loc='upper left')
+    plt.show()
+    fig, ax = plt.subplots(figsize=(16, 12))
+    loss_keys = [key for key in train_history.history.keys() if 'loss' in key]
+    for key in loss_keys:
+        plt.plot(train_history.history[key])
+    plt.title('Model loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(loss_keys, loc='upper left')
+    plt.show()
     K.clear_session()
 
 

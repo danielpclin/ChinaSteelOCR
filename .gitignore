@@ -3,10 +3,10 @@
 /public_training_data/
 /標記與資料說明/
 /Training Label/
-/submission_template.csv
+/checkpoints/*.hdf5
+
 /submission_template.zip
 /標記與資料說明.zip
 /public_testing_data.zip
 /public_training_data.zip
-/checkpoint_*.hdf5
 /public_data_label 更新表.xlsx
