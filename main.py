@@ -1,6 +1,7 @@
 import os
 import pickle
 
+import wandb
 import pandas as pd
 import tensorflow as tf
 import numpy as np
@@ -15,6 +16,8 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import mixed_precision
 
 # Setup mixed precision
+from wandb.integration.keras import WandbCallback
+
 mixed_precision.set_global_policy('mixed_float16')
 
 
@@ -111,11 +114,19 @@ def train(version_num, batch_size=64):
     #     # Invalid device or cannot modify virtual devices once initialized.
     #     pass
     # os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
+    wandb.init(project="china_steel_ocr", entity="danielpclin")
+
     training_dataset_csv = f"Training Label/public_training_data.csv"
     training_dataset_dir = f"public_training_data/public_training_data/public_training_data"
     checkpoint_path = f'checkpoints/{version_num}.hdf5'
     log_dir = f'logs/{version_num}'
-    epochs = 1
+    epochs = 100
+    learning_rate = 0.001
+    wandb.config = {
+        "learning_rate": learning_rate,
+        "epochs": epochs,
+        "batch_size": batch_size
+    }
     img_width = 1232
     img_height = 1028
     alphabet = list('ABCDEFGHIJKLMNPQRSTUVWXYZ0123456789 ')
@@ -198,7 +209,7 @@ def train(version_num, batch_size=64):
     # x = Dropout(0.4)(x)
     out = [Dense(len(alphabet), name=f'digit{i + 1}', activation='softmax')(x) for i in range(12)]
     model = Model(main_input, out)
-    model.compile(loss='categorical_crossentropy', optimizer=Adam(0.001), metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate), metrics=['accuracy'])
     checkpoint = ModelCheckpoint(checkpoint_path, monitor='val_loss', verbose=1, save_best_only=True,
                                  save_weights_only=False, mode='auto')
 
@@ -206,7 +217,8 @@ def train(version_num, batch_size=64):
     tensor_board = TensorBoard(log_dir=log_dir, histogram_freq=1)
     reduce_lr = MinimumEpochReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=3, cooldown=1, mode='auto',
                                               min_lr=0.00001, min_epoch=15)
-    callbacks_list = [tensor_board, early_stop, checkpoint, reduce_lr]
+    wandb_callback = WandbCallback()
+    callbacks_list = [tensor_board, early_stop, checkpoint, reduce_lr, wandb_callback]
 
     model.summary()
     train_history = model.fit(
@@ -229,7 +241,10 @@ def train(version_num, batch_size=64):
         for letter_idx in range(1, 13):
             acc *= train_history.history[f"val_digit{letter_idx}_accuracy"][loss_idx]
         file.write(f"{acc}\n")
-    fig, ax = plt.subplots(figsize=(16, 12))
+
+    plt.figure(figsize=(20, 15))
+    # Plot accuracy
+    plt.subplot(211)
     accuracy_keys = [key for key in train_history.history.keys() if 'accuracy' in key]
     for key in accuracy_keys:
         plt.plot(train_history.history[key])
@@ -237,8 +252,10 @@ def train(version_num, batch_size=64):
     plt.ylabel('Accuracy')
     plt.xlabel('Epoch')
     plt.legend(accuracy_keys, loc='upper left')
-    plt.show()
-    fig, ax = plt.subplots(figsize=(16, 12))
+    plt.ylim(0.95, 1)
+
+    # Plot loss
+    plt.subplot(212)
     loss_keys = [key for key in train_history.history.keys() if 'loss' in key]
     for key in loss_keys:
         plt.plot(train_history.history[key])
@@ -246,14 +263,17 @@ def train(version_num, batch_size=64):
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
     plt.legend(loss_keys, loc='upper left')
-    plt.show()
+    plt.ylim(0, 0.1)
+    plt.yscale("log")
+    plt.tight_layout()
+    plt.savefig(f"results/{version_num}.png")
+
     K.clear_session()
 
 
 def main():
-    # for i in range(3, 10):
-    #     train(version_num=i, batch_size=32)
-    train(version_num=3, batch_size=32)
+    for i in range(3, 10):
+        train(version_num=i, batch_size=32)
 
 
 if __name__ == "__main__":
