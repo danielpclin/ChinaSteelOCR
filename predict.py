@@ -88,4 +88,4 @@ def predict(versions=(1,), batch_size=64, method="occur_sum_max"):
 
 
 if __name__ == "__main__":
-    predict(versions=(2,), batch_size=64)
+    predict(versions=(3, 4, 5, 6, 7), batch_size=64, method='occur_sum_max')

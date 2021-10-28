@@ -72,7 +72,8 @@ def Residual_Block(filters, kernel_size, strides=(1, 1), with_conv_shortcut=Fals
 
 # Define tensorboard callbacks
 class MinimumEpochEarlyStopping(EarlyStopping):
-    def __init__(self, monitor='val_loss', min_delta=0, patience=0, verbose=0, mode='auto', baseline=None, restore_best_weights=False, min_epoch=30):
+    def __init__(self, monitor='val_loss', min_delta=0, patience=0, verbose=0, mode='auto', baseline=None,
+                 restore_best_weights=False, min_epoch=30):
         super(MinimumEpochEarlyStopping, self).__init__(
             monitor=monitor,
             min_delta=min_delta,
@@ -89,7 +90,8 @@ class MinimumEpochEarlyStopping(EarlyStopping):
 
 
 class MinimumEpochReduceLROnPlateau(ReduceLROnPlateau):
-    def __init__(self, monitor='val_loss', min_delta=0., patience=0, verbose=0, mode='auto', factor=0.1, cooldown=0, min_lr=0., min_epoch=30):
+    def __init__(self, monitor='val_loss', min_delta=0., patience=0, verbose=0, mode='auto', factor=0.1, cooldown=0,
+                 min_lr=0., min_epoch=30):
         super(MinimumEpochReduceLROnPlateau, self).__init__(
             monitor=monitor,
             factor=factor,
@@ -98,7 +100,7 @@ class MinimumEpochReduceLROnPlateau(ReduceLROnPlateau):
             mode=mode,
             min_delta=min_delta,
             cooldown=cooldown,
-            min_lr=min_lr,)
+            min_lr=min_lr, )
         self.min_epoch = min_epoch
 
     def on_epoch_end(self, epoch, logs=None):
@@ -197,50 +199,46 @@ def train(version_num, batch_size=64):
     df[[f'label{i}' for i in range(1, 13)]] = pd.DataFrame(df['label'].to_list(), index=df.index)
     for i in range(1, 13):
         df[f'label{i}'] = df[f'label{i}'].apply(lambda el: to_categorical(char_to_int[el], len(alphabet)))
-    datagen = ImageDataGenerator(rescale=1. / 255, validation_split=0.1)
-    train_generator = datagen.flow_from_dataframe(dataframe=df, directory=training_dataset_dir, subset='training',
-                                                  x_col="filename", y_col=[f'label{i}' for i in range(1, 13)],
-                                                  class_mode="multi_output",
-                                                  target_size=(img_height, img_width), batch_size=batch_size)
-    valid_generator = datagen.flow_from_dataframe(dataframe=df, directory=training_dataset_dir, subset='validation',
-                                                  x_col="filename", y_col=[f'label{i}' for i in range(1, 13)],
-                                                  class_mode="multi_output",
-                                                  target_size=(img_height, img_width), batch_size=batch_size)
+    data_gen = ImageDataGenerator(rescale=1. / 255, validation_split=0.1)
+    train_generator = data_gen.flow_from_dataframe(dataframe=df, directory=training_dataset_dir, subset='training',
+                                                   x_col="filename", y_col=[f'label{i}' for i in range(1, 13)],
+                                                   class_mode="multi_output",
+                                                   target_size=(img_height, img_width), batch_size=batch_size)
+    validation_generator = data_gen.flow_from_dataframe(dataframe=df, directory=training_dataset_dir,
+                                                        subset='validation',
+                                                        x_col="filename", y_col=[f'label{i}' for i in range(1, 13)],
+                                                        class_mode="multi_output",
+                                                        target_size=(img_height, img_width), batch_size=batch_size)
+    wandb_data_generator = ImageDataGenerator(rescale=1. / 255)
+    wandb_validation_generator = wandb_data_generator.flow_from_dataframe(dataframe=df, directory=training_dataset_dir,
+                                                                          x_col="filename",
+                                                                          y_col=[f'label{i}' for i in range(1, 13)],
+                                                                          class_mode="multi_output", shuffle=False,
+                                                                          target_size=(img_height, img_width),
+                                                                          batch_size=batch_size)
     input_shape = (img_height, img_width, 3)
     main_input = Input(shape=input_shape)
     x = main_input
-    x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
-    x = MaxPooling2D(pool_size=(2, 2), padding='same')(x)
-    x = Conv2D(filters=64, kernel_size=(7, 7), activation='relu')(x)
-    x = Conv2D(filters=64, kernel_size=(7, 7))(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = MaxPooling2D(pool_size=(3, 3), padding='same')(x)
+    x = Conv2D(filters=64, kernel_size=(7, 7), strides=(2, 2), activation='relu')(x)
+    x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same')(x)
+    x = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='same')(x)
     x = Residual_Block(filters=64, kernel_size=(3, 3))(x)
     x = Residual_Block(filters=64, kernel_size=(3, 3))(x)
-    # x = Residual_Block(filters=64, kernel_size=(3, 3))(x)
+    x = Residual_Block(filters=64, kernel_size=(3, 3))(x)
     x = MaxPooling2D(pool_size=(3, 3), padding='same')(x)
     x = Dropout(0.2)(x)
     x = Residual_Block(filters=128, kernel_size=(3, 3), with_conv_shortcut=True)(x)
     x = Residual_Block(filters=128, kernel_size=(3, 3))(x)
-    # x = Residual_Block(filters=128, kernel_size=(3, 3))(x)
+    x = Residual_Block(filters=128, kernel_size=(3, 3))(x)
     x = MaxPooling2D(pool_size=(3, 3), padding='same')(x)
     x = Dropout(0.2)(x)
     x = Residual_Block(filters=256, kernel_size=(3, 3), with_conv_shortcut=True)(x)
     x = Residual_Block(filters=256, kernel_size=(3, 3))(x)
-    # x = Residual_Block(filters=256, kernel_size=(3, 3))(x)
+    x = Residual_Block(filters=256, kernel_size=(3, 3))(x)
     x = MaxPooling2D(pool_size=(3, 3), padding='same')(x)
     x = Dropout(0.3)(x)
-    x = Conv2D_BN_Activation(filters=256, kernel_size=(3, 3))(x)
+    x = Residual_Block(filters=512, kernel_size=(3, 3), with_conv_shortcut=True)(x)
     x = MaxPooling2D(pool_size=(3, 3), padding='same')(x)
-    x = Dropout(0.3)(x)
-    # x = Conv2D_BN_Activation(filters=512, kernel_size=(3, 3), padding='same')(x)
-    # x = MaxPooling2D(pool_size=(3, 3), padding='same')(x)
-    # x = Residual_Block(filters=512, kernel_size=(3, 3), with_conv_shortcut=True)(x)
-    # x = MaxPooling2D(pool_size=(3, 3), padding='same')(x)
-    # x = Dropout(0.3)(x)
-    # x = Residual_Block(filters=1024, kernel_size=(3, 3), with_conv_shortcut=True)(x)
-    # x = MaxPooling2D(pool_size=(3, 3), padding='same')(x)
     x = Flatten()(x)
     x = Dropout(0.3)(x)
     # x = main_input
@@ -276,7 +274,7 @@ def train(version_num, batch_size=64):
     tensor_board = TensorBoard(log_dir=log_dir, histogram_freq=1)
     reduce_lr = MinimumEpochReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=3, cooldown=1, mode='auto',
                                               min_lr=0.00001, min_epoch=15)
-    wandb_callback = WandbCallback()
+    wandb_callback = WandbCallback(generator=wandb_validation_generator, labels=alphabet)
     callbacks_list = [tensor_board, early_stop, checkpoint, reduce_lr, wandb_callback]
 
     model.summary()
@@ -284,8 +282,8 @@ def train(version_num, batch_size=64):
         train_generator,
         steps_per_epoch=np.ceil(train_generator.n // train_generator.batch_size),
         epochs=epochs,
-        validation_data=valid_generator,
-        validation_steps=np.ceil(valid_generator.n // valid_generator.batch_size),
+        validation_data=validation_generator,
+        validation_steps=np.ceil(validation_generator.n // validation_generator.batch_size),
         verbose=1,
         callbacks=callbacks_list
     )
@@ -308,8 +306,7 @@ def train(version_num, batch_size=64):
 
 
 def main():
-    for i in range(7, 10):
-        train(version_num=i, batch_size=32)
+    train(version_num=10, batch_size=32)
 
 
 if __name__ == "__main__":
