@@ -218,17 +218,17 @@ def train(version_num, batch_size=64):
     x = MaxPooling2D(pool_size=(3, 3), padding='same')(x)
     x = Residual_Block(filters=64, kernel_size=(3, 3))(x)
     x = Residual_Block(filters=64, kernel_size=(3, 3))(x)
-    x = Residual_Block(filters=64, kernel_size=(3, 3))(x)
+    # x = Residual_Block(filters=64, kernel_size=(3, 3))(x)
     x = MaxPooling2D(pool_size=(3, 3), padding='same')(x)
     x = Dropout(0.2)(x)
     x = Residual_Block(filters=128, kernel_size=(3, 3), with_conv_shortcut=True)(x)
     x = Residual_Block(filters=128, kernel_size=(3, 3))(x)
-    x = Residual_Block(filters=128, kernel_size=(3, 3))(x)
+    # x = Residual_Block(filters=128, kernel_size=(3, 3))(x)
     x = MaxPooling2D(pool_size=(3, 3), padding='same')(x)
     x = Dropout(0.2)(x)
     x = Residual_Block(filters=256, kernel_size=(3, 3), with_conv_shortcut=True)(x)
     x = Residual_Block(filters=256, kernel_size=(3, 3))(x)
-    x = Residual_Block(filters=256, kernel_size=(3, 3))(x)
+    # x = Residual_Block(filters=256, kernel_size=(3, 3))(x)
     x = MaxPooling2D(pool_size=(3, 3), padding='same')(x)
     x = Dropout(0.3)(x)
     x = Conv2D_BN_Activation(filters=256, kernel_size=(3, 3))(x)
@@ -266,7 +266,7 @@ def train(version_num, batch_size=64):
     # # x = BatchNormalization()(x)
     # x = Flatten()(x)
     # x = Dropout(0.4)(x)
-    out = [Dense(len(alphabet), name=f'digit{i + 1}', activation='softmax')(x) for i in range(12)]
+    out = [Dense(len(alphabet), name=f'label{i + 1}', activation='softmax')(x) for i in range(12)]
     model = Model(main_input, out)
     model.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate), metrics=['accuracy'])
     checkpoint = ModelCheckpoint(checkpoint_path, monitor='val_loss', verbose=1, save_best_only=True,
@@ -298,7 +298,7 @@ def train(version_num, batch_size=64):
         acc = 1
         file.write("Accuracy:\n")
         for letter_idx in range(1, 13):
-            acc *= train_history.history[f"val_digit{letter_idx}_accuracy"][loss_idx]
+            acc *= train_history.history[f"val_label{letter_idx}_accuracy"][loss_idx]
         file.write(f"{acc}\n")
 
     plot(train_history.history, version_num)
@@ -308,7 +308,7 @@ def train(version_num, batch_size=64):
 
 
 def main():
-    for i in range(4, 10):
+    for i in range(7, 10):
         train(version_num=i, batch_size=32)
 
 
