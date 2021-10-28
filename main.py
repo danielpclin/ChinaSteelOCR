@@ -106,6 +106,66 @@ class MinimumEpochReduceLROnPlateau(ReduceLROnPlateau):
             super().on_epoch_end(epoch, logs)
 
 
+def plot(history, version_num):
+    fig = plt.figure(figsize=(20, 15))
+
+    # Plot training accuracy
+    plt.subplot(2, 1, 1)
+    training_accuracy_keys = [key for key in history.keys() if 'accuracy' in key and 'val' not in key]
+    for key in training_accuracy_keys:
+        plt.plot(history[key])
+    plt.title('Model training accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(training_accuracy_keys)
+    plt.ylim(0.8, 1)
+    plt.grid()
+
+    # Plot training loss
+    plt.subplot(2, 1, 2)
+    training_loss_keys = [key for key in history.keys() if 'loss' in key and 'val' not in key]
+    for key in training_loss_keys:
+        plt.plot(history[key])
+    plt.title('Model training loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(training_loss_keys)
+    plt.yscale("log")
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig(f"results/train_{version_num}.png")
+    plt.close(fig)
+
+    fig = plt.figure(figsize=(20, 15))
+
+    # Plot val accuracy
+    plt.subplot(2, 1, 1)
+    val_accuracy_keys = [key for key in history.keys() if 'accuracy' in key and 'val' in key]
+    for key in val_accuracy_keys:
+        plt.plot(history[key])
+    plt.title('Model val accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    plt.legend(val_accuracy_keys)
+    plt.ylim(0.8, 1)
+    plt.grid()
+
+    # Plot val loss
+    plt.subplot(2, 1, 2)
+    val_loss_keys = [key for key in history.keys() if 'loss' in key and 'val' in key]
+    for key in val_loss_keys:
+        plt.plot(history[key])
+    plt.title('Model val loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend(val_loss_keys)
+    plt.yscale("log")
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig(f"results/val_{version_num}.png")
+    plt.close(fig)
+
+
 def train(version_num, batch_size=64):
     # physical_devices = tf.config.list_physical_devices('GPU')
     # try:
@@ -241,31 +301,7 @@ def train(version_num, batch_size=64):
             acc *= train_history.history[f"val_digit{letter_idx}_accuracy"][loss_idx]
         file.write(f"{acc}\n")
 
-    plt.figure(figsize=(20, 15))
-    # Plot accuracy
-    plt.subplot(211)
-    accuracy_keys = [key for key in train_history.history.keys() if 'accuracy' in key]
-    for key in accuracy_keys:
-        plt.plot(train_history.history[key])
-    plt.title('Model accuracy')
-    plt.ylabel('Accuracy')
-    plt.xlabel('Epoch')
-    plt.legend(accuracy_keys, loc='upper left')
-    plt.ylim(0.95, 1)
-
-    # Plot loss
-    plt.subplot(212)
-    loss_keys = [key for key in train_history.history.keys() if 'loss' in key]
-    for key in loss_keys:
-        plt.plot(train_history.history[key])
-    plt.title('Model loss')
-    plt.ylabel('Loss')
-    plt.xlabel('Epoch')
-    plt.legend(loss_keys, loc='upper left')
-    plt.ylim(1e-8, 0.5)
-    plt.yscale("log")
-    plt.tight_layout()
-    plt.savefig(f"results/{version_num}.png")
+    plot(train_history.history, version_num)
 
     run.finish()
     K.clear_session()
