@@ -47,4 +47,4 @@ def evaluate(versions=(1,), batch_size=64):
 
 
 if __name__ == "__main__":
-    evaluate(versions=(2,), batch_size=64)
+    evaluate(versions=(13,), batch_size=64)

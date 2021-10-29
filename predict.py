@@ -1,3 +1,4 @@
+import itertools
 import os
 import pickle
 
@@ -37,7 +38,7 @@ def predict(versions=(1,), batch_size=64, method="occur_sum_max", evaluate=False
     for version in versions:
         filename = f"predicted_result/{'eval_' if evaluate else ''}{version}.pickle"
         if os.path.isfile(filename):
-            with open(filename) as f:
+            with open(filename, 'rb') as f:
                 _prediction = pickle.load(f)
         else:
             checkpoint_path = f'checkpoints/{version}.hdf5'
@@ -101,7 +102,8 @@ def predict(versions=(1,), batch_size=64, method="occur_sum_max", evaluate=False
     result_df['text'] = result
     result_df['text'] = result_df['text'].str.strip()
     if evaluate:
-        print(score.score(result_df['text'], df['label']))
+        print(f'Method: {versions} {method}')
+        print(f"Score ({result_df.shape[0]} images): {score.score(result_df['text'], df['label']) + (result_df['text'].compare(df['label']).count()[0])}")
     else:
         if len(versions) == 1:
             result_df.to_csv(f'predictions/{versions[0]}.csv', index=False)
@@ -111,4 +113,14 @@ def predict(versions=(1,), batch_size=64, method="occur_sum_max", evaluate=False
 
 if __name__ == "__main__":
     # predict(versions=(3, 4, 5, 6, 7), batch_size=64, method='occur_sum_max', evaluate=True)
-    predict(versions=(3,), batch_size=64, method='occur_sum_max', evaluate=True)
+    # predict(versions=(13,), batch_size=64, method='max', evaluate=True)
+    model_indices = list(range(1, 14))
+    for i in range(1, 1+len(model_indices)):
+        for versions in itertools.combinations(model_indices, i):
+            if i == 1:
+                predict(versions=versions, batch_size=64, method='single model', evaluate=True)
+                continue
+            predict(versions=versions, batch_size=64, method='occur_max', evaluate=True)
+            predict(versions=versions, batch_size=64, method='occur_sum_max', evaluate=True)
+            predict(versions=versions, batch_size=64, method='max', evaluate=True)
+            predict(versions=versions, batch_size=64, method='sum_max', evaluate=True)
