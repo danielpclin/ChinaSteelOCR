@@ -103,7 +103,9 @@ def predict(versions=(1,), batch_size=64, method="occur_sum_max", evaluate=False
     result_df['text'] = result_df['text'].str.strip()
     if evaluate:
         print(f'Method: {versions} {method}')
-        print(f"Score ({result_df.shape[0]} images): {score.score(result_df['text'], df['label']) + (result_df['text'].compare(df['label']).count()[0])}")
+        points = score.score(result_df['text'], df['label']) + (result_df['text'].compare(df['label']).count()[0])
+        print(f"Score ({result_df.shape[0]} images): {points}")
+        return points
     else:
         if len(versions) == 1:
             result_df.to_csv(f'predictions/{versions[0]}.csv', index=False)
@@ -111,16 +113,28 @@ def predict(versions=(1,), batch_size=64, method="occur_sum_max", evaluate=False
             result_df.to_csv(f'predictions/{"_".join(map(str, versions))}_{method}.csv', index=False)
 
 
-if __name__ == "__main__":
+def main():
     # predict(versions=(3, 4, 5, 6, 7), batch_size=64, method='occur_sum_max', evaluate=True)
     # predict(versions=(13,), batch_size=64, method='max', evaluate=True)
     model_indices = list(range(1, 14))
+    best = 1e9+15
+    best_version = ""
     for i in range(1, 1+len(model_indices)):
         for versions in itertools.combinations(model_indices, i):
             if i == 1:
-                predict(versions=versions, batch_size=64, method='single model', evaluate=True)
+                points = predict(versions=versions, batch_size=64, method='single', evaluate=True)
+                if points < best:
+                    best = points
+                    best_version = f"{versions} single"
                 continue
-            predict(versions=versions, batch_size=64, method='occur_max', evaluate=True)
-            predict(versions=versions, batch_size=64, method='occur_sum_max', evaluate=True)
-            predict(versions=versions, batch_size=64, method='max', evaluate=True)
-            predict(versions=versions, batch_size=64, method='sum_max', evaluate=True)
+            for method in ("occur_max", "occur_sum_max", "max", "sum_max"):
+                points = predict(versions=versions, batch_size=64, method=method, evaluate=True)
+                if points < best:
+                    best = points
+                    best_version = f"{versions} single"
+    print(f"best model: {best_version}")
+    print(f"score: {best}")
+
+
+if __name__ == "__main__":
+    main()
