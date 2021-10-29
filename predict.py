@@ -114,19 +114,17 @@ def predict(versions=(1,), batch_size=64, method="occur_sum_max", evaluate=False
 
 
 def main():
-    # predict(versions=(3, 4, 5, 6, 7), batch_size=64, method='occur_sum_max', evaluate=True)
-    # predict(versions=(13,), batch_size=64, method='max', evaluate=True)
     model_indices = list(range(1, 14))
     score_df = pd.DataFrame()
     for i in range(1, 1+len(model_indices)):
         for versions in itertools.combinations(model_indices, i):
             if i == 1:
                 points = predict(versions=versions, batch_size=64, method='single', evaluate=True)
-                score_df = score_df.append({'model': f'{versions} single', 'score': points})
+                score_df = score_df.append({'model': f'{versions} single', 'score': points}, ignore_index=True)
                 continue
             for method in ("occur_max", "occur_sum_max", "max", "sum_max"):
                 points = predict(versions=versions, batch_size=64, method=method, evaluate=True)
-                score_df = score_df.append({'model': f'{versions} single', 'score': points})
+                score_df = score_df.append({'model': f'{versions} single', 'score': points}, ignore_index=True)
     print(score_df.sort_value('score'))
 
 
