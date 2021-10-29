@@ -117,23 +117,17 @@ def main():
     # predict(versions=(3, 4, 5, 6, 7), batch_size=64, method='occur_sum_max', evaluate=True)
     # predict(versions=(13,), batch_size=64, method='max', evaluate=True)
     model_indices = list(range(1, 14))
-    best = 1e9+15
-    best_version = ""
+    score_df = pd.DataFrame()
     for i in range(1, 1+len(model_indices)):
         for versions in itertools.combinations(model_indices, i):
             if i == 1:
                 points = predict(versions=versions, batch_size=64, method='single', evaluate=True)
-                if points < best:
-                    best = points
-                    best_version = f"{versions} single"
+                score_df = score_df.append({'model': f'{versions} single', 'score': points})
                 continue
             for method in ("occur_max", "occur_sum_max", "max", "sum_max"):
                 points = predict(versions=versions, batch_size=64, method=method, evaluate=True)
-                if points < best:
-                    best = points
-                    best_version = f"{versions} single"
-    print(f"best model: {best_version}")
-    print(f"score: {best}")
+                score_df = score_df.append({'model': f'{versions} single', 'score': points})
+    print(score_df.sort_value('score'))
 
 
 if __name__ == "__main__":
