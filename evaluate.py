@@ -41,7 +41,7 @@ def evaluate(versions=(1,), batch_size=64):
             steps=np.ceil(evaluate_generator.n / evaluate_generator.batch_size),
             verbose=1,
         )
-        print("Current evaluation:")
+        print(f"Evaluation result ({version}):")
         print(evaluation)
         K.clear_session()
 

@@ -1,4 +1,6 @@
 import os
+import pickle
+
 import pandas as pd
 import tensorflow as tf
 import numpy as np
@@ -9,34 +11,51 @@ from tensorflow.keras import mixed_precision
 from functools import reduce
 
 # Setup mixed precision
+import score
+
 mixed_precision.set_global_policy('mixed_float16')
 
 
-def predict(versions=(1,), batch_size=64, method="occur_sum_max"):
-    evaluate_dataset_csv = f"submission_template.csv"
-    evaluate_dataset_dir = f"public_testing_data/public_testing_data"
+def predict(versions=(1,), batch_size=64, method="occur_sum_max", evaluate=False):
+    if evaluate:
+        predict_dataset_csv = f"Training Label/public_testing_data.csv"
+        predict_dataset_dir = f"public_training_data/public_training_data/public_testing_data"
+        x_col = 'filename'
+    else:
+        predict_dataset_csv = f"submission_template.csv"
+        predict_dataset_dir = f"public_testing_data/public_testing_data"
+        x_col = 'id'
     img_width = 1232
     img_height = 1028
     alphabet = list('ABCDEFGHIJKLMNPQRSTUVWXYZ0123456789 ')
     int_to_char = dict((i, c) for i, c in enumerate(alphabet))
-    df = pd.read_csv(f'{evaluate_dataset_csv}', delimiter=',')
-    df['id'] = df['id'] + '.jpg'
+    df = pd.read_csv(f'{predict_dataset_csv}', delimiter=',')
+    df[x_col] = df[x_col] + '.jpg'
+    predict_dataset_dir = f"public_training_data/public_training_data/public_testing_data"
     predictions = []
+    versions = sorted(versions)
     for version in versions:
-        checkpoint_path = f'checkpoints/{version}.hdf5'
-        image_data_generator = ImageDataGenerator(rescale=1. / 255)
-        predict_generator = image_data_generator.flow_from_dataframe(dataframe=df, directory=evaluate_dataset_dir,
-                                                                     x_col="id", class_mode=None, shuffle=False,
-                                                                     target_size=(img_height, img_width),
-                                                                     batch_size=batch_size)
-        model = models.load_model(checkpoint_path)
-        _prediction = model.predict(
-            predict_generator,
-            steps=np.ceil(predict_generator.n / predict_generator.batch_size),
-            verbose=1,
-        )
+        filename = f"predicted_result/{'eval_' if evaluate else ''}{version}.pickle"
+        if os.path.isfile(filename):
+            with open(filename) as f:
+                _prediction = pickle.load(f)
+        else:
+            checkpoint_path = f'checkpoints/{version}.hdf5'
+            image_data_generator = ImageDataGenerator(rescale=1. / 255)
+            predict_generator = image_data_generator.flow_from_dataframe(dataframe=df, directory=predict_dataset_dir,
+                                                                         x_col=x_col, class_mode=None, shuffle=False,
+                                                                         target_size=(img_height, img_width),
+                                                                         batch_size=batch_size)
+            model = models.load_model(checkpoint_path)
+            _prediction = model.predict(
+                predict_generator,
+                steps=np.ceil(predict_generator.n / predict_generator.batch_size),
+                verbose=1,
+            )
+            K.clear_session()
+            with open(filename, 'wb') as f:
+                pickle.dump(_prediction, f)
         predictions.append(_prediction)
-        K.clear_session()
 
     if len(versions) == 1:
         prediction = predictions[0]
@@ -78,14 +97,18 @@ def predict(versions=(1,), batch_size=64, method="occur_sum_max"):
             for letter in prediction_sum_argmax:
                 for index, label in enumerate(letter):
                     result[index] = result[index] + int_to_char[label % len(alphabet)]
-    result_df = pd.read_csv(f'{evaluate_dataset_csv}', delimiter=',')
+    result_df = pd.read_csv(f'{predict_dataset_csv}', delimiter=',')
     result_df['text'] = result
     result_df['text'] = result_df['text'].str.strip()
-    if len(versions) == 1:
-        result_df.to_csv(f'predictions/{versions[0]}.csv', index=False)
+    if evaluate:
+        print(score.score(result_df['text'], df['label']))
     else:
-        result_df.to_csv(f'predictions/{"_".join(map(str, versions))}_{method}.csv', index=False)
+        if len(versions) == 1:
+            result_df.to_csv(f'predictions/{versions[0]}.csv', index=False)
+        else:
+            result_df.to_csv(f'predictions/{"_".join(map(str, versions))}_{method}.csv', index=False)
 
 
 if __name__ == "__main__":
-    predict(versions=(3, 4, 5, 6, 7), batch_size=64, method='occur_sum_max')
+    # predict(versions=(3, 4, 5, 6, 7), batch_size=64, method='occur_sum_max', evaluate=True)
+    predict(versions=(3,), batch_size=64, method='occur_sum_max', evaluate=True)
