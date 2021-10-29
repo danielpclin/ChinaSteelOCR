@@ -34,7 +34,6 @@ def predict(versions=(1,), batch_size=64, method="occur_sum_max", evaluate=False
     int_to_char = dict((i, c) for i, c in enumerate(alphabet))
     df = pd.read_csv(f'{predict_dataset_csv}', delimiter=',')
     df[x_col] = df[x_col] + '.jpg'
-    predict_dataset_dir = f"public_training_data/public_training_data/public_testing_data"
     predictions = []
     versions = sorted(versions)
     for version in versions:
@@ -133,7 +132,7 @@ def main():
     #             points = predict(versions=versions, batch_size=64, method=method, evaluate=True)
     #             score_df = score_df.append({'model': f'{versions} {method}', 'score': points}, ignore_index=True)
     # print(score_df.sort_values('score'))
-    predict(versions=(1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13), batch_size=64, method="sum_max", evaluate=False)
+    predict(versions=(1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 14), batch_size=64, method="sum_max", evaluate=False)
 
 
 if __name__ == "__main__":
