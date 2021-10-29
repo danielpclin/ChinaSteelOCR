@@ -16,6 +16,8 @@ import score
 
 mixed_precision.set_global_policy('mixed_float16')
 
+predicted_dict = {}
+
 
 def predict(versions=(1,), batch_size=64, method="occur_sum_max", evaluate=False):
     if evaluate:
@@ -37,9 +39,12 @@ def predict(versions=(1,), batch_size=64, method="occur_sum_max", evaluate=False
     versions = sorted(versions)
     for version in versions:
         filename = f"predicted_result/{'eval_' if evaluate else ''}{version}.pickle"
-        if os.path.isfile(filename):
+        if version in predicted_dict:
+            _prediction = predicted_dict[version]
+        elif os.path.isfile(filename):
             with open(filename, 'rb') as f:
                 _prediction = pickle.load(f)
+                predicted_dict[version] = _prediction
         else:
             checkpoint_path = f'checkpoints/{version}.hdf5'
             image_data_generator = ImageDataGenerator(rescale=1. / 255)
@@ -56,6 +61,7 @@ def predict(versions=(1,), batch_size=64, method="occur_sum_max", evaluate=False
             K.clear_session()
             with open(filename, 'wb') as f:
                 pickle.dump(_prediction, f)
+            predicted_dict[version] = _prediction
         predictions.append(_prediction)
 
     if len(versions) == 1:
@@ -114,18 +120,20 @@ def predict(versions=(1,), batch_size=64, method="occur_sum_max", evaluate=False
 
 
 def main():
-    model_indices = list(range(1, 14))
-    score_df = pd.DataFrame()
-    for i in range(1, 1+len(model_indices)):
-        for versions in itertools.combinations(model_indices, i):
-            if i == 1:
-                points = predict(versions=versions, batch_size=64, method='single', evaluate=True)
-                score_df = score_df.append({'model': f'{versions} single', 'score': points}, ignore_index=True)
-                continue
-            for method in ("occur_max", "occur_sum_max", "max", "sum_max"):
-                points = predict(versions=versions, batch_size=64, method=method, evaluate=True)
-                score_df = score_df.append({'model': f'{versions} single', 'score': points}, ignore_index=True)
-    print(score_df.sort_value('score'))
+    # model_indices = list(range(1, 14))
+    # score_df = pd.DataFrame()
+    # for i in range(11, 1+len(model_indices)):
+    #     for versions in itertools.combinations(model_indices, i):
+    #         if i == 1:
+    #             points = predict(versions=versions, batch_size=64, method='single', evaluate=True)
+    #             score_df = score_df.append({'model': f'{versions} single', 'score': points}, ignore_index=True)
+    #             continue
+    #         # for method in ("occur_max", "occur_sum_max", "max", "sum_max"):
+    #         for method in ("sum_max",):
+    #             points = predict(versions=versions, batch_size=64, method=method, evaluate=True)
+    #             score_df = score_df.append({'model': f'{versions} {method}', 'score': points}, ignore_index=True)
+    # print(score_df.sort_values('score'))
+    predict(versions=(1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13), batch_size=64, method="sum_max", evaluate=False)
 
 
 if __name__ == "__main__":

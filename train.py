@@ -169,14 +169,6 @@ def plot(history, version_num):
 
 
 def train(version_num, batch_size=64):
-    # physical_devices = tf.config.list_physical_devices('GPU')
-    # try:
-    #     tf.config.experimental.set_memory_growth(physical_devices[0], True)
-    # except:
-    #     # Invalid device or cannot modify virtual devices once initialized.
-    #     pass
-    # os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
-
     training_dataset_csv = f"Training Label/public_training_data.csv"
     training_dataset_dir = f"public_training_data/public_training_data/public_training_data"
     checkpoint_path = f'checkpoints/{version_num}.hdf5'
@@ -236,7 +228,8 @@ def train(version_num, batch_size=64):
     x = Conv2D_BN_Activation(filters=256, kernel_size=(3, 3))(x)
     x = MaxPooling2D(pool_size=(3, 3), padding='same')(x)
     x = Dropout(0.3)(x)
-    out = [Dense(len(alphabet), name=f'label{i + 1}', activation='softmax')(x) for i in range(12)]
+    x = Flatten()(x)
+    out = [Dense(len(alphabet), name=f'label{i}', activation='softmax')(x) for i in range(1, 13)]
     model = Model(main_input, out)
     model.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate), metrics=['accuracy'])
     checkpoint = ModelCheckpoint(checkpoint_path, monitor='val_loss', verbose=1, save_best_only=True,
