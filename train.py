@@ -186,7 +186,8 @@ def train(version_num, batch_size=64):
     run = wandb.init(project="china_steel_ocr", entity="danielpclin", reinit=True, config={
         "learning_rate": learning_rate,
         "epochs": epochs,
-        "batch_size": batch_size
+        "batch_size": batch_size,
+        "version": version_num
     })
     img_width = 1232
     img_height = 1028
@@ -209,13 +210,13 @@ def train(version_num, batch_size=64):
                                                         x_col="filename", y_col=[f'label{i}' for i in range(1, 13)],
                                                         class_mode="multi_output",
                                                         target_size=(img_height, img_width), batch_size=batch_size)
-    wandb_data_generator = ImageDataGenerator(rescale=1. / 255)
-    wandb_validation_generator = wandb_data_generator.flow_from_dataframe(dataframe=df, directory=training_dataset_dir,
-                                                                          x_col="filename",
-                                                                          y_col=[f'label{i}' for i in range(1, 13)],
-                                                                          class_mode="multi_output", shuffle=False,
-                                                                          target_size=(img_height, img_width),
-                                                                          batch_size=batch_size)
+    # wandb_data_generator = ImageDataGenerator(rescale=1. / 255)
+    # wandb_validation_generator = wandb_data_generator.flow_from_dataframe(dataframe=df, directory=training_dataset_dir,
+    #                                                                       x_col="filename",
+    #                                                                       y_col=[f'label{i}' for i in range(1, 13)],
+    #                                                                       class_mode="multi_output", shuffle=False,
+    #                                                                       target_size=(img_height, img_width),
+    #                                                                       batch_size=batch_size)
     input_shape = (img_height, img_width, 3)
     main_input = Input(shape=input_shape)
     x = main_input
@@ -252,7 +253,8 @@ def train(version_num, batch_size=64):
     tensor_board = TensorBoard(log_dir=log_dir, histogram_freq=1)
     reduce_lr = MinimumEpochReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=3, cooldown=1, mode='auto',
                                               min_lr=0.00001, min_epoch=15)
-    wandb_callback = WandbCallback(generator=wandb_validation_generator, labels=alphabet)
+    # wandb_callback = WandbCallback(generator=wandb_validation_generator, labels=alphabet)
+    wandb_callback = WandbCallback()
     callbacks_list = [tensor_board, early_stop, checkpoint, reduce_lr, wandb_callback]
 
     model.summary()
