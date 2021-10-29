@@ -36,11 +36,12 @@ def evaluate(versions=(1,), batch_size=64):
                                                                       target_size=(img_height, img_width),
                                                                       batch_size=batch_size)
         model = models.load_model(checkpoint_path)
-        evaluation = model.prediction(
+        evaluation = model.evaluate(
             evaluate_generator,
             steps=np.ceil(evaluate_generator.n / evaluate_generator.batch_size),
             verbose=1,
         )
+        print("Current evaluation:")
         print(evaluation)
         K.clear_session()
 
