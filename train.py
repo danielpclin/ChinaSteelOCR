@@ -12,7 +12,7 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras import Input, Model
 from tensorflow.keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D, BatchNormalization, Activation, Add
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.keras import mixed_precision
 
 # Setup mixed precision
@@ -174,12 +174,15 @@ def train(version_num, batch_size=64):
     checkpoint_path = f'checkpoints/{version_num}.hdf5'
     log_dir = f'logs/{version_num}'
     epochs = 100
-    learning_rate = 0.001
+    learning_rate = 0.01
+    # optimizer = Adam(learning_rate)
+    optimizer = SGD(learning_rate, momentum=0.9)
     run = wandb.init(project="china_steel_ocr", entity="danielpclin", reinit=True, config={
         "learning_rate": learning_rate,
         "epochs": epochs,
         "batch_size": batch_size,
-        "version": version_num
+        "version": version_num,
+        "optimizer": optimizer._name
     })
     img_width = 1232
     img_height = 1028
@@ -231,7 +234,7 @@ def train(version_num, batch_size=64):
     x = Flatten()(x)
     out = [Dense(len(alphabet), name=f'label{i}', activation='softmax')(x) for i in range(1, 13)]
     model = Model(main_input, out)
-    model.compile(loss='categorical_crossentropy', optimizer=Adam(learning_rate), metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
     checkpoint = ModelCheckpoint(checkpoint_path, monitor='val_loss', verbose=1, save_best_only=True,
                                  save_weights_only=False, mode='auto')
 
@@ -255,7 +258,7 @@ def train(version_num, batch_size=64):
     with open(f"results/{version_num}.pickle", "wb") as file:
         pickle.dump(train_history.history, file)
     with open(f"results/{version_num}.txt", "w") as file:
-        loss_idx = np.argmin(train_history.history['val_loss'])
+        loss_idx = np.nanargmin(train_history.history['val_loss'])
         file.write("Loss:\n")
         file.write(f"{train_history.history['val_loss'][loss_idx]}\n")
         acc = 1
@@ -271,7 +274,7 @@ def train(version_num, batch_size=64):
 
 
 def main():
-    train(version_num=14, batch_size=64)
+    train(version_num=19, batch_size=64)
 
 
 if __name__ == "__main__":
