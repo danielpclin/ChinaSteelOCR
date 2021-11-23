@@ -70,7 +70,6 @@ def Residual_Block(filters, kernel_size, strides=(1, 1), with_conv_shortcut=Fals
     return block
 
 
-# Define tensorboard callbacks
 class MinimumEpochEarlyStopping(EarlyStopping):
     def __init__(self, monitor='val_loss', min_delta=0, patience=0, verbose=0, mode='auto', baseline=None,
                  restore_best_weights=False, min_epoch=30):
@@ -174,9 +173,8 @@ def train(version_num, batch_size=64):
     checkpoint_path = f'checkpoints/{version_num}.hdf5'
     log_dir = f'logs/{version_num}'
     epochs = 100
-    learning_rate = 0.01
-    # optimizer = Adam(learning_rate)
-    optimizer = SGD(learning_rate, momentum=0.9)
+    learning_rate = 0.001
+    optimizer = Adam(learning_rate)
     run = wandb.init(project="china_steel_ocr", entity="danielpclin", reinit=True, config={
         "learning_rate": learning_rate,
         "epochs": epochs,

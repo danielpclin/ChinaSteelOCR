@@ -1,6 +1,8 @@
 /logs/
 /public_testing_data/
 /public_training_data/
+
+
 /標記與資料說明/
 /Training Label/
 /checkpoints/*.hdf5
